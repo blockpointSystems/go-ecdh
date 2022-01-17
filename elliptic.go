@@ -29,59 +29,59 @@ func NewEllipticECDH(curve elliptic.Curve) ECDH {
 	}
 }
 
-func (e *ellipticECDH) GenerateKey(rand io.Reader) (crypto.PrivateKey, crypto.PublicKey, error) {
-	var d []byte
-	var x, y *big.Int
-	var priv *ellipticPrivateKey
-	var pub *ellipticPublicKey
-	var err error
+func (e *ellipticECDH) GenerateKey(rand io.Reader) (priv crypto.PrivateKey, pub crypto.PublicKey, err error) {
+	var (
+		publicKey  = new(ellipticPublicKey)
+		privateKey = new(ellipticPrivateKey)
+	)
 
-	d, x, y, err = elliptic.GenerateKey(e.curve, rand)
+	// Set the curve to ECDH
+	publicKey.Curve = e.curve
+
+	// Generate the key
+	privateKey.D, publicKey.X, publicKey.Y, err = elliptic.GenerateKey(e.curve, rand)
 	if err != nil {
-		return nil, nil, err
+		return
 	}
 
-	priv = &ellipticPrivateKey{
-		D: d,
-	}
-	pub = &ellipticPublicKey{
-		Curve: e.curve,
-		X: x,
-		Y: y,
-	}
-	
-	return priv, pub, nil
+	// Return the keys
+	return privateKey, publicKey, err
 }
 
 func (e *ellipticECDH) Marshal(p crypto.PublicKey) []byte {
-	pub := p.(*ellipticPublicKey)
+	var pub = p.(*ellipticPublicKey)
 	return elliptic.Marshal(e.curve, pub.X, pub.Y)
 }
 
-func (e *ellipticECDH) Unmarshal(data []byte) (crypto.PublicKey, bool) {
-	var key *ellipticPublicKey
-	var x, y *big.Int
+func (e *ellipticECDH) Unmarshal(data []byte) (pub crypto.PublicKey, valid bool) {
+	var (
+		key = new(ellipticPublicKey)
+	)
 
-	x, y = elliptic.Unmarshal(e.curve, data)
-	if x == nil || y == nil {
-		return key, false
-	}
-	key = &ellipticPublicKey{
-		Curve: e.curve,
-		X:     x,
-		Y:     y,
-	}
-	return key, true
+	// Set the curve to ECDH
+	key.Curve = e.curve
+
+	// Unmarshal the keys
+	key.X, key.Y = elliptic.Unmarshal(e.curve, data)
+
+	// If both terms are != nil, set valid to true
+	valid = key.X != nil && key.Y != nil
+	return
 }
 
 // GenerateSharedSecret takes in a public key and a private key
 // and generates a shared secret.
 //
 // RFC5903 Section 9 states we should only return x.
-func (e *ellipticECDH) GenerateSharedSecret(privKey crypto.PrivateKey, pubKey crypto.PublicKey) ([]byte, error) {
-	priv := privKey.(*ellipticPrivateKey)
-	pub := pubKey.(*ellipticPublicKey)
+func (e *ellipticECDH) GenerateSharedSecret(privKey crypto.PrivateKey, pubKey crypto.PublicKey) (secret []byte, err error) {
+	var (
+		x *big.Int
 
-	x, _ := e.curve.ScalarMult(pub.X, pub.Y, priv.D)
-	return x.Bytes(), nil
+		privateKey = privKey.(*ellipticPrivateKey)
+		publicKey  = pubKey.(*ellipticPublicKey)
+	)
+
+	x, _ = e.curve.ScalarMult(publicKey.X, publicKey.Y, privateKey.D)
+	secret = x.Bytes()
+	return
 }

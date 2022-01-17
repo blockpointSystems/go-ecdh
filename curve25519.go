@@ -17,13 +17,14 @@ func NewCurve25519ECDH() ECDH {
 	return &curve25519ECDH{}
 }
 
-func (e *curve25519ECDH) GenerateKey(rand io.Reader) (crypto.PrivateKey, crypto.PublicKey, error) {
-	var pub, priv [32]byte
-	var err error
+func (e *curve25519ECDH) GenerateKey(rand io.Reader) (privateKey crypto.PrivateKey, publicKey crypto.PublicKey, err error) {
+	var (
+		pub, priv [32]byte
+	)
 
 	_, err = io.ReadFull(rand, priv[:])
 	if err != nil {
-		return nil, nil, err
+		return
 	}
 
 	priv[0] &= 248
@@ -32,7 +33,9 @@ func (e *curve25519ECDH) GenerateKey(rand io.Reader) (crypto.PrivateKey, crypto.
 
 	curve25519.ScalarBaseMult(&pub, &priv)
 
-	return &priv, &pub, nil
+	privateKey = &priv
+	publicKey = &pub
+	return
 }
 
 func (e *curve25519ECDH) Marshal(p crypto.PublicKey) []byte {
