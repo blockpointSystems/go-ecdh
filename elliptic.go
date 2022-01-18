@@ -66,7 +66,7 @@ func (e *ellipticECDH) Unmarshal(data []byte) (pub crypto.PublicKey, valid bool)
 
 	// If both terms are != nil, set valid to true
 	valid = key.X != nil && key.Y != nil
-	return
+	return key, valid
 }
 
 // GenerateSharedSecret takes in a public key and a private key

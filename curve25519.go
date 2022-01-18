@@ -18,9 +18,7 @@ func NewCurve25519ECDH() ECDH {
 }
 
 func (e *curve25519ECDH) GenerateKey(rand io.Reader) (privateKey crypto.PrivateKey, publicKey crypto.PublicKey, err error) {
-	var (
-		pub, priv [32]byte
-	)
+	var pub, priv [32]byte
 
 	_, err = io.ReadFull(rand, priv[:])
 	if err != nil {
@@ -39,8 +37,7 @@ func (e *curve25519ECDH) GenerateKey(rand io.Reader) (privateKey crypto.PrivateK
 }
 
 func (e *curve25519ECDH) Marshal(p crypto.PublicKey) []byte {
-	pub := p.(*[32]byte)
-	return pub[:]
+	return p.(*[32]byte)[:]
 }
 
 func (e *curve25519ECDH) Unmarshal(data []byte) (crypto.PublicKey, bool) {
@@ -53,13 +50,9 @@ func (e *curve25519ECDH) Unmarshal(data []byte) (crypto.PublicKey, bool) {
 	return &pub, true
 }
 
-func (e *curve25519ECDH) GenerateSharedSecret(privKey crypto.PrivateKey, pubKey crypto.PublicKey) ([]byte, error) {
-	var priv, pub, secret *[32]byte
-
-	priv = privKey.(*[32]byte)
-	pub = pubKey.(*[32]byte)
-	secret = new([32]byte)
-
-	curve25519.ScalarMult(secret, priv, pub)
-	return secret[:], nil
+func (e *curve25519ECDH) GenerateSharedSecret(privKey crypto.PrivateKey, pubKey crypto.PublicKey) (secret []byte, err error) {
+	return curve25519.X25519(
+		privKey.(*[32]byte)[:],
+		pubKey.(*[32]byte)[:],
+	)
 }
